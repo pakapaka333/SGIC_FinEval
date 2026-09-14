@@ -1,0 +1,145 @@
+diff --git a/lm_eval/models/huggingface.py b/lm_eval/models/huggingface.py
+index 3799c9c..5df1e74 100644
+--- a/lm_eval/models/huggingface.py
++++ b/lm_eval/models/huggingface.py
+@@ -3,6 +3,7 @@ import torch
+ import torch.nn.functional as F
+ import transformers
+ import peft
++import re
+ from peft import __version__ as PEFT_VERSION
+ from pathlib import Path
+ from typing import List, Mapping, NewType, Optional, Tuple, Union
+@@ -243,6 +244,7 @@ class HuggingFaceAutoLM(BaseLM):
+             bnb_4bit_use_double_quant=bnb_4bit_use_double_quant,
+             **model_kwargs,
+         )
++        self.model_name = pretrained.lower()
+         self._config = self.model.config
+ 
+         # note: peft_path can be different than pretrained model path
+@@ -484,6 +486,7 @@ class HuggingFaceAutoLM(BaseLM):
+             request_args = chunk[0][1]
+             stop = request_args.get("until", None)
+             stop_sequences = stop if isinstance(stop, list) else [stop]
++            use_chat = request_args.get("chat", False)
+             max_generation_length = request_args.get("max_length", None)
+ 
+             assert (
+@@ -516,7 +519,7 @@ class HuggingFaceAutoLM(BaseLM):
+                 for term in until:
+                     response = response.split(term)[0]
+                 # partial caching
+-                self.cache_hook.add_partial("greedy_until", (context, until), response)
++                self.cache_hook.add_partial("greedy_until", (context, until, use_chat), response)
+                 results.append(response)
+         return reorder.get_original(results)
+ 
+@@ -761,6 +764,7 @@ class VLLM(BaseLM):
+             revision=revision,
+             tensor_parallel_size=gpus
+         )
++        self.model_name = pretrained.lower()
+ 
+     def _model_call(
+         self, inputs: TokenSequence, labels: Optional[TokenSequence] = None
+@@ -789,6 +793,7 @@ class VLLM(BaseLM):
+             request_args = chunk[0][1]
+             stop = request_args.get("until", None)
+             stop_sequences = stop if isinstance(stop, list) else [stop]
++            use_chat = request_args.get("chat", False)
+             max_generation_length = request_args.get("max_length", None)
+ 
+             assert (
+@@ -808,7 +813,7 @@ class VLLM(BaseLM):
+                 max_tokens = max_generation_length
+ 
+             responses = self._model_generate(
+-                inputs=context, max_tokens=max_tokens, stop=until
++                inputs=context, max_tokens=max_tokens, stop=until, use_chat=use_chat
+             )
+ 
+             for response in responses:
+@@ -820,15 +825,55 @@ class VLLM(BaseLM):
+                 results.append(response)
+         return results
+ 
++
++    THINK_PATTERN = {
++        "qwen3": r".*</think>(.*)",
++        "qwen-3": r".*</think>(.*)",
++        "gpt-oss": r".*assistantfinal(.*)",
++    }
++    def _get_think_pattern(
++        self,
++        model_name: str,
++    ) -> Optional[str]:
++        for n, p in self.THINK_PATTERN.items():
++            if n in model_name.lower():
++                return p
++        return None
++
++
++    def _strip_think_tag(
++        self,
++        text: str,
++        think_pattern: str,
++    ) -> str:
++        match = re.search(think_pattern, text, flags=re.DOTALL)
++        return match.group(1).strip() if match else text
++
++
+     def _model_generate(
+         self,
+         inputs: list,
+         max_tokens: int,
+         stop: Optional[List[str]] = None,
++        use_chat: bool = False,
+     ) -> TokenSequence:
+-        sampling_params = SamplingParams(temperature=0, top_p=1, max_tokens=max_tokens)
+-        generations = self.model.generate(inputs, sampling_params)
+-        return [val.outputs[0].text for val in generations]
++        sampling_params = SamplingParams(temperature=0, top_p=1, max_tokens=max_tokens, stop=stop)
++        if use_chat:
++            inputs = [[{"role": "user", "content": inp}] for inp in inputs]
++            generations = self.model.chat(inputs, sampling_params)
++            think_pattern = self._get_think_pattern(self.model_name)
++            if think_pattern is not None:
++                outputs = [
++                    self._strip_think_tag(val.outputs[0].text, think_pattern)
++                    for val in generations
++                    ]
++            else:
++                outputs = [val.outputs[0].text for val in generations]
++        else:
++            generations = self.model.generate(inputs, sampling_params)
++            outputs = [val.outputs[0].text for val in generations]
++        
++        return outputs
+ 
+ 
+ class AutoCausalLM(HuggingFaceAutoLM):
+@@ -871,7 +916,11 @@ class AutoCausalLM(HuggingFaceAutoLM):
+         inputs: transformers.BatchEncoding,
+         max_tokens: int,
+         stop: Optional[List[str]] = None,
++        use_chat: bool = False,
+     ) -> TokenSequence:
++        if use_chat:
++            raise NotImplementedError("Chat generation is not supported for AutoCausalLM")
++
+         # Ensure that the context does not encroach into the `space`
+         # for the generation.
+         input_ids = inputs["input_ids"][:, self.max_gen_toks - self.max_length :]
+@@ -1031,7 +1080,11 @@ class AutoSeq2SeqLM(HuggingFaceAutoLM):
+         inputs: transformers.BatchEncoding,
+         max_tokens: int,
+         stop: Optional[List[str]] = None,
++        use_chat: bool = False,
+     ) -> TokenSequence:
++        if use_chat:
++            raise NotImplementedError("Chat generation is not supported for AutoSeq2SeqLM")
++
+         input_ids = inputs["input_ids"][:, -self.max_length :].to(self.device)
+         attention_mask = inputs["attention_mask"][:, -self.max_length :].to(self.device)
+ 

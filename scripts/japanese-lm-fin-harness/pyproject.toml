@@ -1,0 +1,32 @@
+[project]
+name = "evaluate_japanese-lm-fin-harness"
+version = "0.1.0"
+description = "beta"
+readme = "README.md"
+requires-python = "==3.10.14"
+dependencies = [
+    # for japanese-lm-fin-harness
+    "japanese-lm-fin-harness",
+
+    # for scoring
+    "sympy",
+]
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+japanese-lm-fin-harness = { path = "../../benchmarks/japanese-lm-fin-harness", editable = true  }
+
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+

@@ -1,0 +1,31 @@
+NOTICE
+======
+
+This repository does not redistribute the benchmark implementations it builds
+on. Instead, `scripts/build_env.sh` fetches the following upstream
+repositories at the commits pinned in `benchmarks.tsv`, and applies the patch
+files under `patches/` on top of them. The fetched contents remain under their
+own upstream licenses, including any exceptions stated by the upstream
+projects for individual data files.
+
+The patch files under `patches/` are derivative works of the corresponding
+upstream projects listed below, all of which are distributed under the MIT
+License:
+
+* patches/PIXIU.patch
+  Derived from PIXIU (https://github.com/The-FinAI/PIXIU)
+  Copyright (c) 2023 The-FinAI, MIT License.
+
+* patches/PIXIU--financial-evaluation.patch
+  Derived from financial-evaluation
+  (https://github.com/The-FinAI/financial-evaluation), a fork of the
+  EleutherAI lm-evaluation-harness.
+  Copyright (c) 2020 EleutherAI, MIT License.
+
+* patches/japanese-lm-fin-harness.patch
+  Derived from japanese-lm-fin-harness
+  (https://github.com/pfnet-research/japanese-lm-fin-harness)
+  Copyright (c) Preferred Networks, Inc., MIT License.
+
+BARTScore (https://github.com/neulab/BARTScore) is also fetched at setup time
+as a runtime dependency of PIXIU. It is used as-is, without patches.

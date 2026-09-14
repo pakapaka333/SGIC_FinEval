@@ -1,0 +1,17 @@
+.env
+
+venv/
+__pycache__/
+*.egg-info
+.DS_Store
+
+# Evaluation outputs
+# NOTE: no trailing slash on "results" so that a symlinked results dir is also ignored
+results
+tmp/
+lm_cache/
+
+# Benchmarks fetched by scripts/build_env.sh (see benchmarks.tsv)
+benchmarks/PIXIU/
+benchmarks/japanese-lm-fin-harness/
+

@@ -1,0 +1,12 @@
+{"benchmark": "PIXIU", "result_key": ["flare_cfa_inst", "flare_cfa"], "metric_key": "acc", "display_name": "flare_cfa_acc"}
+{"benchmark": "PIXIU", "result_key": ["flare_cfa_inst", "flare_cfa"], "metric_key": "f1", "display_name": "flare_cfa_f1"}
+{"benchmark": "PIXIU", "result_key": ["flare_finqa_inst", "flare_finqa"], "metric_key": "acc_within_eps", "display_name": "flare_finqa_acc"}
+{"benchmark": "PIXIU", "result_key": ["flare_fpb_inst", "flare_fpb"], "metric_key": "acc", "display_name": "flare_fpb_acc"}
+{"benchmark": "PIXIU", "result_key": ["flare_fpb_inst", "flare_fpb"], "metric_key": "f1", "display_name": "flare_fpb_f1"}
+{"benchmark": "japanese-lm-fin-harness", "result_key": ["chabsa_gen", "chabsa"], "metric_key": ["exact_match,none", "acc,none"], "display_name": "chabsa_acc"}
+{"benchmark": "japanese-lm-fin-harness", "result_key": ["chabsa_gen", "chabsa"], "metric_key": ["chabsa_f1,none", "f1,none"], "display_name": "chabsa_f1"}
+{"benchmark": "japanese-lm-fin-harness", "result_key": ["cma_basics_gen", "cma_basics"], "metric_key": ["exact_match,none", "acc,none"], "display_name": "cma_basics_acc"}
+{"benchmark": "japanese-lm-fin-harness", "result_key": ["cpa_audit_gen", "cpa_audit"], "metric_key": ["exact_match,none", "acc,none"], "display_name": "cpa_audit_acc"}
+{"benchmark": "japanese-lm-fin-harness", "result_key": ["fp2_gen", "fp2"], "metric_key": ["exact_match,none", "acc,none"], "display_name": "fp2_acc"}
+{"benchmark": "japanese-lm-fin-harness", "result_key": ["security_sales_1_gen", "security_sales_1"], "metric_key": ["exact_match,none", "acc,none"], "display_name": "security_sales_1_acc"}
+{"benchmark": "dr-finance-instruction", "result_key": "dr_finance_instruction", "metric_key": "acc_all", "display_name": "dr_finance_instruction_accuracy"}

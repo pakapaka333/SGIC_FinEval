@@ -1,0 +1,7 @@
+[project]
+name = "aggregate_results"
+version = "0.1.0"
+description = "beta"
+readme = "README.md"
+requires-python = "==3.10.14"
+dependencies = []

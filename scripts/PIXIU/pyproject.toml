@@ -1,0 +1,51 @@
+[project]
+name = "evaluate_PIXIU"
+version = "0.1.0"
+description = "beta"
+readme = "README.md"
+requires-python = "==3.10.14"
+dependencies = [
+    # for benchmarks/PIXIU/requirements.txt
+    "transformers",
+    "peft",
+    "gradio",
+    "tqdm",
+    "scikit-learn",
+    "sentencepiece",
+    "pandas",
+    "seqeval",
+    "numpy<2",  # Specified to use numpy 1.x
+    "evaluate",
+    "openai",
+    "rank_bm25",
+    "spacy",
+    "sentence_transformers",
+    "en-core-web-sm",
+    "vllm", # Removed to use Llama 3 (this disables hf-causal-vllm).
+
+    # for benchmarks/PIXIU/src/financial_evaluation
+    "lm-eval[multilingual]",
+
+    # for scoring
+    "sympy",
+]
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+en-core-web-sm = { path = "../../benchmarks/PIXIU/src/factscore_package/en_core_web_sm-3.7.1.tar.gz" }
+lm-eval = { path = "../../benchmarks/PIXIU/src/financial-evaluation", editable = true }
+
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+

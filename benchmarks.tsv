@@ -1,0 +1,6 @@
+# dest	url	commit	patch
+# Order matters: benchmarks/PIXIU must be fetched before the repositories nested inside it.
+benchmarks/PIXIU	https://github.com/The-FinAI/PIXIU.git	da45ac467ca3a828621315881e33c68bca3bbb1f	patches/PIXIU.patch
+benchmarks/PIXIU/src/financial-evaluation	https://github.com/The-FinAI/financial-evaluation.git	4f352735955f9065544679d33060140794f47340	patches/PIXIU--financial-evaluation.patch
+benchmarks/PIXIU/src/metrics/BARTScore	https://github.com/neulab/BARTScore.git	248f511cb34ae3753fc81f7d7a945de5bfe33458	-
+benchmarks/japanese-lm-fin-harness	https://github.com/pfnet-research/japanese-lm-fin-harness.git	aeff72933aac581302ac6e882982e7344733379c	patches/japanese-lm-fin-harness.patch

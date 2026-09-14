@@ -1,0 +1,317 @@
+diff --git a/jlm_fin_eval/api/metrics.py b/jlm_fin_eval/api/metrics.py
+index c2e4dda..31c5ae6 100644
+--- a/jlm_fin_eval/api/metrics.py
++++ b/jlm_fin_eval/api/metrics.py
+@@ -36,6 +36,20 @@ def f1_norm_fn(items):  # This is a passthrough function
+     return items
+ 
+ 
++@register_metric(
++    metric="chabsa_f1",
++    higher_is_better=True,
++    output_type="generate_until",
++)
++def chabsa_f1_fn(items):  # This is a passthrough function (generate_until variant)
++    # In generate_until, ConfigurableTask.process_results first tries
++    # `metric_fn(references=[gold], predictions=[pred])`; for a single-arg
++    # function that raises TypeError, so lm-eval falls back to
++    # `metric_fn([gold, pred])`, handing us the (gold, pred) pair to pass
++    # through to the macro-F1 aggregation.
++    return items
++
++
+ @register_metric(
+     metric="map",
+     higher_is_better=True,
+diff --git a/jlm_fin_eval/tasks/chabsa/chabsa_gen.yaml b/jlm_fin_eval/tasks/chabsa/chabsa_gen.yaml
+new file mode 100644
+index 0000000..51add71
+--- /dev/null
++++ b/jlm_fin_eval/tasks/chabsa/chabsa_gen.yaml
+@@ -0,0 +1,35 @@
++task: chabsa_gen
++dataset_path: jlm_fin_eval/datasets/chabsa/chabsa.py
++dataset_name: chABSA
++output_type: generate_until
++training_split: null
++validation_split: null
++test_split: test
++description: "以下のセンテンスにおける、ターゲットのセンチメントをpositiveかnegativeで答えてください。ただし、最終的な回答（positive または negative）は \\boxed{} の中に記入しなさい。\n\n\n"
++target_delimiter: ""
++fewshot_delimiter: "\n\n"
++doc_to_text: "センテンス: {{sentence}}\nターゲット: {{target}}\n回答:"
++doc_to_target: "{{polarity}}"
++should_decontaminate: false
++doc_to_decontamination_query: sentence
++generation_kwargs:
++  do_sample: false
++  until: []
++filter_list:
++  - name: none
++    filter:
++      - function: regex
++        regex_pattern: '\\boxed\{(.*?)\}'
++        group_select: -1
++      - function: take_first
++metric_list:
++  - metric: exact_match
++    aggregation: mean
++    higher_is_better: true
++    ignore_case: true
++    ignore_punctuation: true
++  - metric: chabsa_f1
++    aggregation: 2class_adjusted_macro_f1_score_for_chabsa
++    higher_is_better: true
++metadata:
++  version: 1.0
+diff --git a/jlm_fin_eval/tasks/cma_basics/cma_basics_gen.yaml b/jlm_fin_eval/tasks/cma_basics/cma_basics_gen.yaml
+new file mode 100644
+index 0000000..d1b54fd
+--- /dev/null
++++ b/jlm_fin_eval/tasks/cma_basics/cma_basics_gen.yaml
+@@ -0,0 +1,30 @@
++task: cma_basics_gen
++dataset_path: jlm_fin_eval/datasets/cma_basics/cma_basics.py
++dataset_name: cma_basics
++output_type: generate_until
++training_split: null
++validation_split: null
++test_split: test
++description: "以下の問題の適切な答えを選択肢から選んでアルファベットで答えなさい。ただし、最終的な回答（選択肢のアルファベット1文字）は \\boxed{} の中に記入しなさい。\n\n\n"
++target_delimiter: ""
++fewshot_delimiter: "\n\n"
++doc_to_text: !function utils.doc_to_text_boxed
++doc_to_target: !function utils.doc_to_target_alphabet
++generation_kwargs:
++  do_sample: false
++  until: []
++filter_list:
++  - name: none
++    filter:
++      - function: regex
++        regex_pattern: '\\boxed\{(.*?)\}'
++        group_select: -1
++      - function: take_first
++metric_list:
++  - metric: exact_match
++    aggregation: mean
++    higher_is_better: true
++    ignore_case: true
++    ignore_punctuation: true
++metadata:
++  version: 1.0
+diff --git a/jlm_fin_eval/tasks/cma_basics/utils.py b/jlm_fin_eval/tasks/cma_basics/utils.py
+index 9c45789..8a1581f 100644
+--- a/jlm_fin_eval/tasks/cma_basics/utils.py
++++ b/jlm_fin_eval/tasks/cma_basics/utils.py
+@@ -20,6 +20,20 @@ def doc_to_choices_alphabet(doc):
+     return choices
+ 
+ 
++def doc_to_text_boxed(doc):
++    doc_text = "【問題】\n" + doc["question"] + "\n"
++    if doc["context"] and doc["context"] != "":
++        doc_text += doc["context"] + "\n"
++    doc_text += "\n【選択肢】\n"
++    for choice_id, choice_text in zip(doc["choices"]["id"], doc["choices"]["text"]):
++        doc_text += chr(choice_id + 65) + ": " + choice_text + "\n"
++    doc_text += (
++        "\n最終的な答えとなる選択肢のアルファベット1文字を "
++        "\\boxed{} の中に記入してください。\n"
++    )
++    return doc_text
++
++
+ def doc_to_text_01(doc):
+     q_doc_text = doc["question"] + "\n"
+     if doc["context"] and doc["context"] != "":
+diff --git a/jlm_fin_eval/tasks/cpa_audit/cpa_audit_gen.yaml b/jlm_fin_eval/tasks/cpa_audit/cpa_audit_gen.yaml
+new file mode 100644
+index 0000000..c417af0
+--- /dev/null
++++ b/jlm_fin_eval/tasks/cpa_audit/cpa_audit_gen.yaml
+@@ -0,0 +1,30 @@
++task: cpa_audit_gen
++dataset_path: jlm_fin_eval/datasets/cpa/cpa_audit.py
++dataset_name: cpa_audit
++output_type: generate_until
++training_split: null
++validation_split: null
++test_split: test
++description: "以下の問題の答えとして適切な記号の組み合わせを選択肢から選んでアルファベットで答えなさい。ただし、最終的な回答（選択肢のアルファベット1文字）は \\boxed{} の中に記入しなさい。\n\n\n"
++target_delimiter: ""
++fewshot_delimiter: "\n\n"
++doc_to_text: !function utils.doc_to_text_boxed
++doc_to_target: !function utils.doc_to_target_alphabet
++generation_kwargs:
++  do_sample: false
++  until: []
++filter_list:
++  - name: none
++    filter:
++      - function: regex
++        regex_pattern: '\\boxed\{(.*?)\}'
++        group_select: -1
++      - function: take_first
++metric_list:
++  - metric: exact_match
++    aggregation: mean
++    higher_is_better: true
++    ignore_case: true
++    ignore_punctuation: true
++metadata:
++  version: 1.0
+diff --git a/jlm_fin_eval/tasks/cpa_audit/utils.py b/jlm_fin_eval/tasks/cpa_audit/utils.py
+index 4cabe66..9c1104e 100644
+--- a/jlm_fin_eval/tasks/cpa_audit/utils.py
++++ b/jlm_fin_eval/tasks/cpa_audit/utils.py
+@@ -20,6 +20,20 @@ def doc_to_choices_alphabet(doc):
+     return choices
+ 
+ 
++def doc_to_text_boxed(doc):
++    doc_text = "【問題】\n" + doc["question"] + "\n"
++    if doc["context"] and doc["context"] != "":
++        doc_text += doc["context"] + "\n"
++    doc_text += "\n【選択肢】\n"
++    for choice_id, choice_text in zip(doc["choices"]["id"], doc["choices"]["text"]):
++        doc_text += chr(choice_id + 65) + ": " + choice_text + "\n"
++    doc_text += (
++        "\n最終的な答えとなる選択肢のアルファベット1文字を "
++        "\\boxed{} の中に記入してください。\n"
++    )
++    return doc_text
++
++
+ def doc_to_text_01(doc):
+     q_doc_text = doc["question"] + "\n"
+     if doc["context"] and doc["context"] != "":
+diff --git a/jlm_fin_eval/tasks/fp2/fp2_gen.yaml b/jlm_fin_eval/tasks/fp2/fp2_gen.yaml
+new file mode 100644
+index 0000000..9a41715
+--- /dev/null
++++ b/jlm_fin_eval/tasks/fp2/fp2_gen.yaml
+@@ -0,0 +1,30 @@
++task: fp2_gen
++dataset_path: jlm_fin_eval/datasets/fp2/fp2.py
++dataset_name: fp2
++output_type: generate_until
++training_split: null
++validation_split: null
++test_split: test
++description: "以下の問題の適切な答えを選択肢から選んで１～４の数字で答えなさい。ただし、最終的な答え（選択肢の番号）は \\boxed{} の中に記入しなさい。\n\n\n"
++target_delimiter: ""
++fewshot_delimiter: "\n\n"
++doc_to_text: !function utils.doc_to_text_boxed
++doc_to_target: !function utils.doc_to_target_boxed
++generation_kwargs:
++  do_sample: false
++  until: []
++filter_list:
++  - name: none
++    filter:
++      - function: regex
++        regex_pattern: '\\boxed\{(.*?)\}'
++        group_select: -1
++      - function: take_first
++metric_list:
++  - metric: exact_match
++    aggregation: mean
++    higher_is_better: true
++    ignore_case: true
++    ignore_punctuation: true
++metadata:
++  version: 1.0
+diff --git a/jlm_fin_eval/tasks/fp2/utils.py b/jlm_fin_eval/tasks/fp2/utils.py
+index b279c72..ade00da 100644
+--- a/jlm_fin_eval/tasks/fp2/utils.py
++++ b/jlm_fin_eval/tasks/fp2/utils.py
+@@ -17,6 +17,27 @@ def doc_to_choices_00(doc):
+     return choices
+ 
+ 
++def doc_to_text_boxed(doc):
++    doc_text = "【問題】\n" + doc["question"] + "\n"
++    if doc["context"] and doc["context"] != "":
++        doc_text += doc["context"] + "\n"
++    doc_text += "\n【選択肢】\n"
++    for number, choice_text in enumerate(doc["choices"]["text"], start=1):
++        doc_text += str(number) + ": " + choice_text + "\n"
++    doc_text += (
++        "\n最終的な答えとなる選択肢の番号（1～"
++        + str(len(doc["choices"]["text"]))
++        + "）を \\boxed{} の中に記入してください。\n"
++    )
++    return doc_text
++
++
++def doc_to_target_boxed(doc):
++    # Map the gold answer id to its 1-based position shown in doc_to_text_boxed.
++    position = doc["choices"]["id"].index(doc["answer"])
++    return str(position + 1)
++
++
+ def doc_to_text_01(doc):
+     q_doc_text = doc["question"] + "\n"
+     if doc["context"] and doc["context"] != "":
+diff --git a/jlm_fin_eval/tasks/security_sales_1/security_sales_1_gen.yaml b/jlm_fin_eval/tasks/security_sales_1/security_sales_1_gen.yaml
+new file mode 100644
+index 0000000..b9612e1
+--- /dev/null
++++ b/jlm_fin_eval/tasks/security_sales_1/security_sales_1_gen.yaml
+@@ -0,0 +1,30 @@
++task: security_sales_1_gen
++dataset_path: jlm_fin_eval/datasets/security_sales_1/security_sales_1.py
++dataset_name: security_sales_1
++output_type: generate_until
++training_split: null
++validation_split: null
++test_split: test
++description: "以下の問題の適切な答えを選択肢から選んでアルファベットで答えなさい。ただし、最終的な回答（選択肢のアルファベット1文字）は \\boxed{} の中に記入しなさい。\n\n\n"
++target_delimiter: ""
++fewshot_delimiter: "\n\n"
++doc_to_text: !function utils.doc_to_text_boxed
++doc_to_target: !function utils.doc_to_target_alphabet
++generation_kwargs:
++  do_sample: false
++  until: []
++filter_list:
++  - name: none
++    filter:
++      - function: regex
++        regex_pattern: '\\boxed\{(.*?)\}'
++        group_select: -1
++      - function: take_first
++metric_list:
++  - metric: exact_match
++    aggregation: mean
++    higher_is_better: true
++    ignore_case: true
++    ignore_punctuation: true
++metadata:
++  version: 1.0
+diff --git a/jlm_fin_eval/tasks/security_sales_1/utils.py b/jlm_fin_eval/tasks/security_sales_1/utils.py
+index 9c45789..8a1581f 100644
+--- a/jlm_fin_eval/tasks/security_sales_1/utils.py
++++ b/jlm_fin_eval/tasks/security_sales_1/utils.py
+@@ -20,6 +20,20 @@ def doc_to_choices_alphabet(doc):
+     return choices
+ 
+ 
++def doc_to_text_boxed(doc):
++    doc_text = "【問題】\n" + doc["question"] + "\n"
++    if doc["context"] and doc["context"] != "":
++        doc_text += doc["context"] + "\n"
++    doc_text += "\n【選択肢】\n"
++    for choice_id, choice_text in zip(doc["choices"]["id"], doc["choices"]["text"]):
++        doc_text += chr(choice_id + 65) + ": " + choice_text + "\n"
++    doc_text += (
++        "\n最終的な答えとなる選択肢のアルファベット1文字を "
++        "\\boxed{} の中に記入してください。\n"
++    )
++    return doc_text
++
++
+ def doc_to_text_01(doc):
+     q_doc_text = doc["question"] + "\n"
+     if doc["context"] and doc["context"] != "":

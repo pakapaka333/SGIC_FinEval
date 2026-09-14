@@ -1,0 +1,33 @@
+[project]
+name = "evaluate_dr-finance-instruction"
+version = "0.1.0"
+description = "beta"
+readme = "README.md"
+requires-python = "==3.10.14"
+dependencies = [
+    "datasets",
+    "pandas",
+    "transformers",
+    "huggingface_hub",
+    "openai",
+    "vllm",
+    "tqdm",
+]
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+
